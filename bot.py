@@ -865,18 +865,24 @@ def run_once() -> None:
 
     recipient = os.getenv("RECIPIENT_EMAIL")
     if not recipient:
-        raise RuntimeError("RECIPIENT_EMAIL is not set in your environment (.env).")
+        raise RuntimeError("RECIPIENT_EMAIL is not set. Configure it in GitHub Actions secrets or in a local .env file.")
 
-    path = _BOT_DIR / ".env"
-    if not path.is_file():
-        raise RuntimeError(f"Missing .env next to bot.py: {path}")
-    cfg = dotenv_values(path)
-    openai_api_key = _strip_env_value(cfg.get("OPENAI_API_KEY"))
-    openai_model = _strip_env_value(cfg.get("OPENAI_MODEL")) or "gpt-4.1-mini"
+    openai_api_key = _strip_env_value(os.getenv("OPENAI_API_KEY"))
+    openai_model = _strip_env_value(os.getenv("OPENAI_MODEL")) or "gpt-4.1-mini"
+
+    if not openai_api_key:
+        path = _BOT_DIR / ".env"
+        if path.is_file():
+            cfg = dotenv_values(path)
+            openai_api_key = _strip_env_value(cfg.get("OPENAI_API_KEY"))
+            openai_model = (
+                _strip_env_value(cfg.get("OPENAI_MODEL")) or openai_model
+            )
+
     if not openai_api_key:
         raise RuntimeError(
-            "OPENAI_API_KEY is empty in .env. Add your key from "
-            "https://platform.openai.com/api-keys and save .env to disk."
+            "OPENAI_API_KEY is not set. Configure it in GitHub Actions secrets "
+            "or in a local .env file next to bot.py."
         )
 
     # Tech and sports: fetch → summarize → send in parallel (independent pipelines).
