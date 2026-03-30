@@ -1,0 +1,51 @@
+# Runs bot.py on GitHub-hosted runners (no PC required).
+# Cron uses UTC. Examples for ~08:00 America/New_York:
+#   - 13:00 UTC ≈ 08:00 EST (winter)
+#   - 12:00 UTC ≈ 08:00 EDT (summer) — change the cron hour when DST changes.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   OPENAI_API_KEY, SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD,
+#   SENDER_EMAIL, RECIPIENT_EMAIL
+# Optional: OPENAI_MODEL (e.g. gpt-4.1-mini)
+#
+# bot.py and requirements.txt must live at the repository root (same level as this file's ../..).
+name: Daily news bot
+
+on:
+  schedule:
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-news-bot-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      TZ: America/New_York
+      PYTHONUNBUFFERED: "1"
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+      RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run bot once
+        run: python bot.py run-once
