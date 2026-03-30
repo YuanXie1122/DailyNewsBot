@@ -2,7 +2,7 @@ name: Daily news bot
 
 on:
   schedule:
-    - cron: "17 9 * * *"
+    - cron: "17 6 * * *"
       timezone: "America/New_York"
   workflow_dispatch:
 
