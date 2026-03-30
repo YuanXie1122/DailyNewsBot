@@ -1,23 +1,13 @@
-# Runs bot.py on GitHub-hosted runners (no PC required).
-# Cron uses UTC. Examples for ~08:00 America/New_York:
-#   - 13:00 UTC ≈ 08:00 EST (winter)
-#   - 12:00 UTC ≈ 08:00 EDT (summer) — change the cron hour when DST changes.
-#
-# Required repo secrets (Settings → Secrets and variables → Actions):
-#   OPENAI_API_KEY, SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD,
-#   SENDER_EMAIL, RECIPIENT_EMAIL
-# Optional: OPENAI_MODEL (e.g. gpt-4.1-mini)
-#
-# bot.py and requirements.txt must live at the repository root (same level as this file's ../..).
 name: Daily news bot
 
 on:
   schedule:
     - cron: "0 13 * * *"
   workflow_dispatch:
+
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true 
-  
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 permissions:
   contents: read
 
@@ -38,6 +28,7 @@ jobs:
       SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
       SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
       RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+
     steps:
       - uses: actions/checkout@v5
 
@@ -46,8 +37,30 @@ jobs:
           python-version: "3.12"
           cache: "pip"
 
+      - name: Show files
+        run: |
+          pwd
+          ls -la
+          echo "------"
+          test -f bot.py && echo "bot.py exists" || echo "bot.py missing"
+          test -f requirements.txt && echo "requirements.txt exists" || echo "requirements.txt missing"
+
+      - name: Check secrets
+        run: |
+          [ -n "$OPENAI_API_KEY" ] && echo "OPENAI_API_KEY ok" || echo "OPENAI_API_KEY missing"
+          [ -n "$SMTP_HOST" ] && echo "SMTP_HOST ok" || echo "SMTP_HOST missing"
+          [ -n "$SMTP_USERNAME" ] && echo "SMTP_USERNAME ok" || echo "SMTP_USERNAME missing"
+          [ -n "$SMTP_PASSWORD" ] && echo "SMTP_PASSWORD ok" || echo "SMTP_PASSWORD missing"
+          [ -n "$SENDER_EMAIL" ] && echo "SENDER_EMAIL ok" || echo "SENDER_EMAIL missing"
+          [ -n "$RECIPIENT_EMAIL" ] && echo "RECIPIENT_EMAIL ok" || echo "RECIPIENT_EMAIL missing"
+
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          python -V
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip list
 
       - name: Run bot once
-        run: python bot.py run-once
+        run: |
+          python bot.py run-once
